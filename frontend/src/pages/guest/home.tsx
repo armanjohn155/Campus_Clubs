@@ -66,11 +66,12 @@ export default function HomePage() {
 
   useEffect(() => {
     let cancelled = false
+    const timer = window.setTimeout(() => {
     setState('loading')
     getClubs({ search: debouncedSearch || undefined, category: category || undefined, sort })
       .then((result) => {
         if (cancelled) return
-        setClubs(result.data)
+        setClubs(result)
         setState('ready')
         setErrorMessage('')
       })
@@ -79,7 +80,8 @@ export default function HomePage() {
         setState('error')
         setErrorMessage(error instanceof Error ? error.message : 'The club directory could not be loaded.')
       })
-    return () => { cancelled = true }
+    }, 0)
+    return () => { cancelled = true; window.clearTimeout(timer) }
   }, [categories, category, debouncedSearch, retryKey, sort])
 
   const filterTabs = useMemo(() => [{ id: '', name: 'All clubs' }, ...categories], [categories])

@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL ?? '/api/v1',
+  baseURL: import.meta.env.VITE_API_URL ?? '/api',
   headers: {
     Accept: 'application/json',
   },
@@ -22,10 +22,7 @@ api.interceptors.response.use(
   (error: unknown) => {
     if (axios.isAxiosError(error) && error.response?.status === 401) {
       localStorage.removeItem('token')
-
-      if (window.location.pathname !== '/auth/login') {
-        window.location.assign('/auth/login')
-      }
+      window.dispatchEvent(new Event('campusclubs:unauthorized'))
     }
 
     return Promise.reject(error)

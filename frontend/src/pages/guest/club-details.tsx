@@ -12,6 +12,7 @@ export default function ClubDetailsPage() {
 
   useEffect(() => {
     let cancelled = false
+    const timer = window.setTimeout(() => {
     setLoading(true)
     setError(false)
     getClub(id)
@@ -19,7 +20,8 @@ export default function ClubDetailsPage() {
       .catch(() => { if (!cancelled) setError(true) })
       .finally(() => { if (!cancelled) setLoading(false) })
 
-    return () => { cancelled = true }
+    }, 0)
+    return () => { cancelled = true; window.clearTimeout(timer) }
   }, [id, retry])
 
   return (
