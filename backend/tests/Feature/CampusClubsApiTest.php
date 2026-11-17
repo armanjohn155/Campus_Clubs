@@ -7,8 +7,10 @@ use App\Models\Club;
 use App\Models\Membership;
 use App\Models\Profile;
 use App\Models\User;
+use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
+use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
 class CampusClubsApiTest extends TestCase
@@ -45,6 +47,35 @@ class CampusClubsApiTest extends TestCase
         $this->postJson('/api/login', ['identifier' => $user->email, 'password' => 'wrong-password'])
             ->assertUnprocessable()
             ->assertJsonValidationErrors('identifier');
+    }
+
+    public function test_password_reset_email_links_to_frontend_and_updates_password(): void
+    {
+        Notification::fake();
+        $user = User::factory()->create(['email' => 'reset@example.test']);
+
+        $this->postJson('/api/forgot-password', ['email' => $user->email])
+            ->assertOk()
+            ->assertJsonPath('message', 'If that email has an account, a reset link is on its way.');
+
+        Notification::assertSentTo($user, ResetPassword::class);
+        $notification = Notification::sent($user, ResetPassword::class)->first();
+        $this->assertInstanceOf(ResetPassword::class, $notification);
+        $url = $notification->toMail($user)->actionUrl;
+        $this->assertStringStartsWith('http://localhost:5173/auth/reset-password?', $url);
+        parse_str((string) parse_url($url, PHP_URL_QUERY), $query);
+        $this->assertSame($user->email, $query['email'] ?? null);
+        $this->assertNotEmpty($query['token'] ?? null);
+
+        $this->postJson('/api/reset-password', [
+            'token' => $query['token'],
+            'email' => $user->email,
+            'password' => 'NewCampusPass123',
+            'password_confirmation' => 'NewCampusPass123',
+        ])->assertOk();
+
+        $this->postJson('/api/login', ['identifier' => $user->email, 'password' => 'NewCampusPass123'])
+            ->assertOk();
     }
 
     public function test_second_pending_join_request_returns_422(): void

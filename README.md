@@ -11,5 +11,8 @@ The backend container installs Composer dependencies, creates its application ke
 and runs database migrations on startup. PostgreSQL data is stored in the
 `postgres_data` Docker volume.
 
+For password resets, set `MAIL_MAILER=log` during local development. Laravel writes
+the email (including its frontend reset link) to `backend/storage/logs/laravel.log`.
+
 Stop the stack with `Ctrl+C`, or run `docker compose down`. To remove the database
 volume as well, run `docker compose down -v`.
