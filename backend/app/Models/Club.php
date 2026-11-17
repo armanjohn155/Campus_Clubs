@@ -67,7 +67,7 @@ class Club extends Model
             ->with([
                 'category',
                 'skills',
-                'myMembership' => fn (Builder $membershipQuery) => $membershipQuery->where('user_id', $userId),
+                'myMembership' => fn ($membershipQuery) => $membershipQuery->where('user_id', $userId),
             ])
             ->withCount([
                 'memberships as approved_members_count' => fn (Builder $membershipQuery) => $membershipQuery->where('status', 'approved'),
