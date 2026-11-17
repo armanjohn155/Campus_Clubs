@@ -14,6 +14,8 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
+        $this->syncAdminFromEnvironment();
+
         foreach (['Academic', 'Arts', 'Sports', 'Technology', 'Community Service', 'Religious', 'Others'] as $name) {
             Category::firstOrCreate(
                 ['name' => $name],
@@ -28,19 +30,39 @@ class DatabaseSeeder extends Seeder
             Skill::firstOrCreate(['name' => $name]);
         }
 
-        $email = env('SEED_ADMIN_EMAIL');
-        $password = env('SEED_ADMIN_PASSWORD');
-        if (! $email || ! $password) {
-            $this->command?->warn('SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD must be set to create the admin account.');
+        $this->call(ClubSeeder::class);
+    }
+
+    private function syncAdminFromEnvironment(): void
+    {
+        $email = mb_strtolower(trim((string) env('SEED_ADMIN_EMAIL', '')));
+        $password = trim((string) env('SEED_ADMIN_PASSWORD', ''));
+
+        if ($email === '' || $password === '') {
+            $this->command?->warn('Admin seeding skipped: SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD must both be set.');
 
             return;
         }
 
-        $name = env('SEED_ADMIN_NAME', 'Administrator');
-        $admin = User::updateOrCreate(
-            ['email' => $email],
+        $name = trim((string) env('SEED_ADMIN_NAME', 'Administrator')) ?: 'Administrator';
+        $existing = User::withTrashed()
+            ->whereRaw('LOWER(email) = ?', [$email])
+            ->first();
+
+        $studentId = 'ADMIN-0001';
+        $studentIdQuery = User::withTrashed()->where('student_id', $studentId);
+        if ($existing) {
+            $studentIdQuery->where('id', '<>', $existing->id);
+        }
+        if ($studentIdQuery->exists()) {
+            $studentId = 'ADMIN-'.strtoupper(substr(sha1($email), 0, 10));
+        }
+
+        $admin = User::withTrashed()->updateOrCreate(
+            ['email' => $existing?->email ?? $email],
             [
-                'student_id' => 'ADMIN-0001',
+                'email' => $email,
+                'student_id' => $studentId,
                 'name' => $name,
                 'password' => $password,
                 'role' => 'ADMIN',
@@ -48,9 +70,14 @@ class DatabaseSeeder extends Seeder
             ],
         );
 
+        if ($admin->trashed()) {
+            $admin->restore();
+        }
+
+        $this->command?->info('Admin seeding '.($existing ? 'updated.' : 'created.'));
+
         Profile::updateOrCreate(['user_id' => $admin->id], ['full_name' => $name]);
         AcademicDetail::firstOrCreate(['user_id' => $admin->id]);
 
-        $this->call(ClubSeeder::class);
     }
 }

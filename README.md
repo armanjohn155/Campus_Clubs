@@ -23,6 +23,11 @@ The seeded administrator credentials are `SEED_ADMIN_EMAIL` and
 `SEED_ADMIN_PASSWORD` from `backend/.env`. Sign in at the frontend using those
 values. Keep the `.env` file private.
 
+On Render, set `SEED_ADMIN_EMAIL`, `SEED_ADMIN_NAME`, and
+`SEED_ADMIN_PASSWORD` as service environment variables. The startup seeder
+syncs the admin account on every deploy. To reset the admin password, change
+`SEED_ADMIN_PASSWORD` in the Render service environment and redeploy.
+
 ## Run backend tests
 
 On Windows, from the backend directory, run the PHPUnit suite with the host
