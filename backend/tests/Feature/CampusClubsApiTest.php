@@ -9,8 +9,9 @@ use App\Models\Profile;
 use App\Models\User;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Laravel\Sanctum\Sanctum;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
+use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class CampusClubsApiTest extends TestCase
@@ -53,6 +54,7 @@ class CampusClubsApiTest extends TestCase
     {
         Notification::fake();
         $user = User::factory()->create(['email' => 'reset@example.test']);
+        $user->createToken('existing-session');
 
         $this->postJson('/api/forgot-password', ['email' => $user->email])
             ->assertOk()
@@ -66,6 +68,16 @@ class CampusClubsApiTest extends TestCase
         parse_str((string) parse_url($url, PHP_URL_QUERY), $query);
         $this->assertSame($user->email, $query['email'] ?? null);
         $this->assertNotEmpty($query['token'] ?? null);
+        $this->assertDatabaseHas('password_reset_tokens', ['email' => $user->email]);
+
+        $this->postJson('/api/reset-password', [
+            'token' => 'invalid-reset-token',
+            'email' => $user->email,
+            'password' => 'NewCampusPass123',
+            'password_confirmation' => 'NewCampusPass123',
+        ])->assertUnprocessable();
+        $this->assertTrue(Hash::check('password', $user->fresh()->password));
+        $this->assertSame(1, $user->tokens()->count());
 
         $this->postJson('/api/reset-password', [
             'token' => $query['token'],
@@ -74,6 +86,8 @@ class CampusClubsApiTest extends TestCase
             'password_confirmation' => 'NewCampusPass123',
         ])->assertOk();
 
+        $this->assertTrue(Hash::check('NewCampusPass123', $user->fresh()->password));
+        $this->assertSame(0, $user->tokens()->count());
         $this->postJson('/api/login', ['identifier' => $user->email, 'password' => 'NewCampusPass123'])
             ->assertOk();
     }

@@ -61,6 +61,12 @@ await step("wrong password is rejected with 422", async () => {
   expectStatus(r, 422);
 });
 
+await step("existing admin can request a password reset", async () => {
+  const r = await call("POST", "/forgot-password", { body: { email: ADMIN_EMAIL } });
+  expectStatus(r, 200);
+  expect(typeof r.data.message === "string", "password reset response is missing its message");
+});
+
 await step("student can register", async () => {
   const r = await call("POST", "/register", { body: student });
   expectStatus(r, 201);
