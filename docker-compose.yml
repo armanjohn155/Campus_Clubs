@@ -5,6 +5,8 @@ services:
       POSTGRES_DB: campusclubs
       POSTGRES_USER: campusclubs
       POSTGRES_PASSWORD: campusclubs
+    ports:
+      - "127.0.0.1:5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -18,6 +20,8 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     working_dir: /var/www/html
+    env_file:
+      - ./backend/.env
     volumes:
       - ./backend:/var/www/html
       - backend_vendor:/var/www/html/vendor
@@ -26,12 +30,10 @@ services:
       APP_DEBUG: "true"
       APP_URL: http://localhost:8000
       DB_CONNECTION: pgsql
-      DB_URL: postgres://campusclubs:campusclubs@db:5432/campusclubs
       DB_HOST: db
       DB_PORT: 5432
       DB_DATABASE: campusclubs
       DB_USERNAME: campusclubs
-      DB_PASSWORD: campusclubs
     command:
       - sh
       - -c
@@ -41,10 +43,16 @@ services:
         if [ ! -f .env ]; then cp .env.example .env; fi
         if ! grep -q '^APP_KEY=base64:' .env; then php artisan key:generate --force; fi
         php artisan migrate --force
-        php artisan db:seed --class=ClubSeeder --force
+        php artisan db:seed --force
         php artisan serve --host=0.0.0.0 --port=8000
     ports:
       - "8000:8000"
+    healthcheck:
+      test: ["CMD", "php", "-r", "exit(@file_get_contents('http://127.0.0.1:8000/up') === false ? 1 : 0);"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
     depends_on:
       db:
         condition: service_healthy

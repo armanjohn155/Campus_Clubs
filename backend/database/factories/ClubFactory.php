@@ -24,7 +24,7 @@ class ClubFactory extends Factory
             'slug' => fn (array $attributes): string => Str::slug($attributes['name']),
             'category_id' => Category::factory(),
             'description' => fake()->paragraph(),
-            'member_count' => fake()->numberBetween(0, 250),
+            'member_count' => 0,
             'is_accepting_members' => true,
             'status' => 'active',
         ];

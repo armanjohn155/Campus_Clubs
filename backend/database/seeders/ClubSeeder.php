@@ -4,43 +4,56 @@ namespace Database\Seeders;
 
 use App\Models\Category;
 use App\Models\Club;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use App\Models\Membership;
+use App\Models\Skill;
+use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 
 class ClubSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
-        $clubs = [
-            ['Computer Science Society', 'Technology', 'Build, learn, and ship ideas with fellow tech enthusiasts.', 248],
-            ['Campus Creatives', 'Arts', 'A home for photographers, illustrators, and storytellers.', 126],
-            ['Young Entrepreneurs', 'Academic', 'Turn bold ideas into real projects alongside your peers.', 94],
-            ['Green Campus Collective', 'Community Service', 'Make our campus greener, one practical action at a time.', 183],
-            ['University Debate Circle', 'Academic', 'Sharpen your arguments and make room for new perspectives.', 72],
-            ['Wildcats Volleyball', 'Sports', 'Play, train, and cheer with the campus volleyball community.', 61],
-        ];
-
-        foreach (['Academic', 'Arts', 'Sports', 'Technology', 'Community Service', 'Religious', 'Others'] as $categoryName) {
-            Category::query()->updateOrCreate(
-                ['slug' => Str::slug($categoryName)],
-                ['name' => $categoryName, 'is_active' => true],
-            );
+        $admin = User::query()->where('role', 'ADMIN')->first();
+        if (! $admin) {
+            return;
         }
 
-        foreach ($clubs as [$name, $categoryName, $description, $memberCount]) {
-            Club::query()->updateOrCreate(
-                ['slug' => Str::slug($name)],
+        $clubs = [
+            ['Computer Science Society', 'Technology', 'Build, learn, and ship projects with fellow tech enthusiasts.', ['Coding', 'Projects']],
+            ['Campus Creatives', 'Arts', 'A home for photographers, illustrators, and storytellers.', ['Graphic Design', 'Photography']],
+            ['Young Entrepreneurs', 'Academic', 'Turn bold ideas into real projects alongside your peers.', ['Leadership', 'Business']],
+            ['Green Campus Collective', 'Community Service', 'Make our campus greener, one practical action at a time.', ['Environment', 'Teamwork']],
+            ['University Debate Circle', 'Academic', 'Sharpen your arguments and make room for new perspectives.', ['Public speaking', 'Critical thinking']],
+            ['Wildcats Volleyball', 'Sports', 'Play, train, and cheer with the campus volleyball community.', ['Teamwork', 'Fitness']],
+        ];
+
+        foreach ($clubs as [$name, $categoryName, $description, $tags]) {
+            $category = Category::query()->where('name', $categoryName)->firstOrFail();
+            $club = Club::updateOrCreate(
+                ['name' => $name],
                 [
-                    'name' => $name,
-                    'category_id' => Category::query()->where('slug', Str::slug($categoryName))->value('id'),
+                    'slug' => Str::slug($name),
+                    'category_id' => $category->id,
                     'description' => $description,
-                    'member_count' => $memberCount,
-                    'is_accepting_members' => true,
                     'status' => 'active',
+                    'is_accepting_members' => true,
+                    'created_by' => $admin->id,
+                ],
+            );
+
+            $skillIds = collect($tags)
+                ->map(fn (string $tag): int => Skill::firstOrCreate(['name' => $tag])->id)
+                ->all();
+            $club->skills()->sync($skillIds);
+
+            Membership::updateOrCreate(
+                ['user_id' => $admin->id, 'club_id' => $club->id],
+                [
+                    'role' => 'president',
+                    'status' => 'approved',
+                    'decided_at' => now(),
+                    'decided_by' => $admin->id,
                 ],
             );
         }
