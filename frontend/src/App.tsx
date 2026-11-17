@@ -16,6 +16,7 @@ import HomePage from '@/pages/user/HomePage'
 import MyClubsPage from '@/pages/user/MyClubsPage'
 import OfficerPage from '@/pages/user/OfficerPage'
 import ProfilePage from '@/pages/user/ProfilePage'
+import ProposeClubPage from '@/pages/user/ProposeClubPage'
 import { getClub } from '@/services/clubs'
 
 function RequireAuth() {
@@ -72,6 +73,7 @@ export default function App() {
         <Route path="home" element={<HomePage />} />
         <Route path="clubs/:id" element={<ClubDetailsPage />} />
         <Route path="my-clubs" element={<MyClubsPage />} />
+        <Route path="clubs/propose" element={<ProposeClubPage />} />
         <Route path="profile" element={<ProfilePage />} />
         <Route path="profile/edit" element={<EditProfilePage />} />
         <Route path="announcements" element={<AnnouncementsPage />} />

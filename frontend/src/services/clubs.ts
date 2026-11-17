@@ -45,6 +45,9 @@ export async function createClub(payload: {
   name: string
   category_id: number
   description: string
+  adviser_name?: string
+  meeting_schedule?: string
+  contact_email?: string
   tags: string[]
 }): Promise<Club> {
   const { data } = await api.post<{ data: Club }>('/clubs', payload)
