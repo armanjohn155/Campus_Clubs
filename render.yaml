@@ -1,0 +1,47 @@
+# Render Blueprint: one Laravel API (Docker) + one PostgreSQL database.
+# Place this file at the repository root. Values marked sync:false are typed in the Render dashboard.
+services:
+  - type: web
+    name: campusclubs-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile.render
+    dockerContext: ./backend
+    plan: free
+    healthCheckPath: /up
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: APP_KEY
+        sync: false            # run: php artisan key:generate --show   (copy the whole base64:... value)
+      - key: APP_URL
+        sync: false            # https://<your-service>.onrender.com
+      - key: FRONTEND_URL
+        sync: false            # https://<your-project>.vercel.app
+      - key: LOG_CHANNEL
+        value: stderr          # so errors and reset links appear in Render's Logs tab
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DB_URL
+        fromDatabase:
+          name: campusclubs-db
+          property: connectionString
+      - key: SESSION_DRIVER
+        value: file
+      - key: MAIL_MAILER
+        value: log
+      - key: PHP_CLI_SERVER_WORKERS
+        value: "4"
+      - key: SEED_ADMIN_EMAIL
+        sync: false
+      - key: SEED_ADMIN_NAME
+        sync: false
+      - key: SEED_ADMIN_PASSWORD
+        sync: false
+
+databases:
+  - name: campusclubs-db
+    plan: free
+    databaseName: campusclubs
+    user: campusclubs
