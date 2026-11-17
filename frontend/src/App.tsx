@@ -48,7 +48,7 @@ function RequireOfficer() {
       setAccess({ clubId: id, state: user?.role === 'ADMIN' || (membership?.status === 'approved' && membership.role !== 'member') ? 'allowed' : 'denied' })
     }).catch(() => { if (active) setAccess({ clubId: id, state: 'error' }) })
     return () => { active = false }
-  }, [id, user?.id])
+  }, [id, user?.id, user?.role])
 
   if (!access || access.clubId !== id) return <div className="page-content"><LoadingState label="Checking officer access" /></div>
   if (access.state === 'denied') return <Navigate to={`/clubs/${id}`} replace />

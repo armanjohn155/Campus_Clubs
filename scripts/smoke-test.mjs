@@ -1,9 +1,9 @@
 // CampusClubs API smoke test. Needs Node 18+.
 // Usage:
-//   API_URL=http://localhost:8000/api ADMIN_EMAIL=you@school.edu ADMIN_PASSWORD=... node scripts/smoke-test.mjs
+//   API_URL=http://127.0.0.1:8000/api ADMIN_EMAIL=you@school.edu ADMIN_PASSWORD=... node scripts/smoke-test.mjs
 // The admin from the seeder is president of every seeded club, so it doubles as the officer.
 
-const API = process.env.API_URL ?? "http://localhost:8000/api";
+const API = process.env.API_URL ?? "http://127.0.0.1:8000/api";
 const { ADMIN_EMAIL, ADMIN_PASSWORD } = process.env;
 if (!ADMIN_EMAIL || !ADMIN_PASSWORD) {
   console.error("Set ADMIN_EMAIL and ADMIN_PASSWORD (the values from your .env SEED_ADMIN_*).");
@@ -45,7 +45,7 @@ const student = {
   password: "SmokeTest123",
   password_confirmation: "SmokeTest123",
 };
-let adminToken, studentToken, clubId, membershipId;
+let adminToken, studentToken, clubId, proposalClubId, membershipId, categoryId;
 
 console.log(`Testing ${API}\n`);
 
@@ -90,7 +90,11 @@ await step("student can edit profile and skills", async () => {
 });
 
 await step("categories and clubs load, with the expected club shape", async () => {
-  expectStatus(await call("GET", "/categories", { token: studentToken }), 200);
+  const categoryResponse = await call("GET", "/categories", { token: studentToken });
+  expectStatus(categoryResponse, 200);
+  const categories = categoryResponse.data.data ?? categoryResponse.data;
+  expect(categories.length > 0, "no categories found: did the seeder run?");
+  categoryId = categories[0].id;
   const r = await call("GET", "/clubs", { token: studentToken });
   expectStatus(r, 200);
   const clubs = r.data.data ?? r.data;
@@ -98,6 +102,43 @@ await step("categories and clubs load, with the expected club shape", async () =
   for (const k of ["id", "name", "category", "tags", "member_count", "my_membership", "is_accepting_members"])
     expect(k in clubs[0], `club is missing ${k}`);
   clubId = clubs[0].id;
+});
+
+await step("student can propose a club with a pending status", async () => {
+  const r = await call("POST", "/clubs", { token: studentToken, body: {
+    name: `Smoke Club ${rand}`, category_id: categoryId,
+    description: "A club created by the CampusClubs API smoke test.",
+    adviser_name: "Smoke Test Adviser", meeting_schedule: "Fridays at 3 PM",
+    contact_email: `club${rand}@example.com`, tags: ["Smoke Testing", "Community"],
+  } });
+  expectStatus(r, 201);
+  const proposal = r.data.data ?? r.data;
+  expect(proposal.status === "pending", "club proposal should await admin approval");
+  expect(proposal.my_membership?.status === "approved" && proposal.my_membership.role === "president", "proposer should be approved president");
+  proposalClubId = proposal.id;
+  const mine = await call("GET", "/my-clubs", { token: studentToken });
+  expectStatus(mine, 200);
+  const clubs = mine.data.data ?? mine.data;
+  expect(clubs.some((club) => club.id === proposalClubId && club.status === "pending"), "pending proposal missing from My Clubs");
+});
+
+await step("admin can approve a student proposal", async () => {
+  const r = await call("PATCH", `/admin/clubs/${proposalClubId}/status`, { token: adminToken, body: { status: "active" } });
+  expectStatus(r, 200);
+  expect(r.data.status === "active", "club was not activated");
+});
+
+await step("proposer can edit settings as the club president", async () => {
+  const r = await call("PUT", `/clubs/${proposalClubId}`, { token: studentToken, body: {
+    description: "Updated by the smoke-test president.", adviser_name: "Updated Adviser",
+    meeting_schedule: "Mondays at 4 PM", contact_email: `updated${rand}@example.com`,
+    is_accepting_members: false, tags: ["Updated", "Smoke"],
+  } });
+  expectStatus(r, 200);
+  const club = r.data.data ?? r.data;
+  expect(club.description === "Updated by the smoke-test president.", "club description was not updated");
+  expect(club.is_accepting_members === false, "accepting-members setting was not updated");
+  expect(club.tags.includes("Updated"), "club tags were not updated");
 });
 
 await step("student can request to join", async () => {
@@ -172,5 +213,5 @@ await step("logout revokes the token", async () => {
 });
 
 console.log(`\n${passed} passed, ${failed} failed`);
-console.log("Test data left behind: one student account (" + student.student_id + "). Delete it from admin/users if you like.");
+console.log("Test data left behind: one smoke-test student, one proposed club, and an announcement on a seeded club.");
 process.exit(failed ? 1 : 0);

@@ -78,6 +78,57 @@ class CampusClubsApiTest extends TestCase
             ->assertOk();
     }
 
+    public function test_student_proposal_is_pending_and_makes_proposer_approved_president(): void
+    {
+        $student = $this->createStudent();
+        $category = Category::factory()->create();
+        Sanctum::actingAs($student);
+
+        $this->postJson('/api/clubs', [
+            'name' => 'Student Robotics Guild',
+            'category_id' => $category->id,
+            'description' => 'A student-led robotics community.',
+            'adviser_name' => 'Dr. Example',
+            'meeting_schedule' => 'Fridays at 3 PM',
+            'contact_email' => 'robotics@example.test',
+            'tags' => ['Robotics', 'Design'],
+        ])->assertCreated()
+            ->assertJsonPath('data.status', 'pending')
+            ->assertJsonPath('data.my_membership.status', 'approved')
+            ->assertJsonPath('data.my_membership.role', 'president');
+
+        $club = Club::query()->where('name', 'Student Robotics Guild')->firstOrFail();
+        $this->assertDatabaseHas('clubs', [
+            'id' => $club->id,
+            'status' => 'pending',
+            'created_by' => $student->id,
+            'category_id' => $category->id,
+        ]);
+        $this->assertDatabaseHas('memberships', [
+            'club_id' => $club->id,
+            'user_id' => $student->id,
+            'role' => 'president',
+            'status' => 'approved',
+        ]);
+    }
+
+    public function test_non_officer_cannot_update_club_settings(): void
+    {
+        $student = $this->createStudent();
+        $club = $this->createClub();
+        Sanctum::actingAs($student);
+
+        $this->putJson("/api/clubs/{$club->id}", [
+            'description' => 'Unauthorized edit',
+            'is_accepting_members' => false,
+        ])->assertForbidden();
+
+        $this->assertDatabaseMissing('clubs', [
+            'id' => $club->id,
+            'description' => 'Unauthorized edit',
+        ]);
+    }
+
     public function test_second_pending_join_request_returns_422(): void
     {
         $student = $this->createStudent();
