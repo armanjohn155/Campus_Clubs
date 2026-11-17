@@ -235,3 +235,12 @@ h1 { margin-top: 11px; font-size: clamp(27px, 3vw, 34px); line-height: 1.2; }
 .club-settings-form input, .club-settings-form textarea { width: 100%; }
 .toggle-field { display: flex; align-items: center; gap: 10px; color: var(--ink); font-size: 13px; font-weight: 600; }
 .toggle-field input { width: 18px; height: 18px; accent-color: var(--green); }
+.quick-access-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
+.quick-access-card { display: grid; gap: 7px; padding: 16px; border: 1px solid var(--line); border-radius: 10px; background: #fff; color: var(--ink); text-decoration: none; }
+.quick-access-card > span { color: var(--green); font-size: 20px; }
+.quick-access-card strong { font-size: 13px; }
+.quick-access-card small { color: var(--muted); font-size: 11px; }
+.quick-access-card:hover { border-color: #bdd4c3; box-shadow: 0 5px 16px #26382d0a; }
+.profile-tool-form { display: grid; gap: 16px; max-width: 640px; }
+.profile-tool-form input, .profile-tool-form select { width: 100%; }
+@media (max-width: 520px) { .quick-access-grid { grid-template-columns: 1fr; } }

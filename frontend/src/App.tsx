@@ -9,6 +9,7 @@ import LoginPage from '@/pages/auth/LoginPage'
 import ResetPasswordPage from '@/pages/auth/ResetPasswordPage'
 import SignupPage from '@/pages/auth/SignupPage'
 import AnnouncementsPage from '@/pages/user/AnnouncementsPage'
+import AcademicDetailsPage from '@/pages/user/AcademicDetailsPage'
 import ClubDetailsPage from '@/pages/user/ClubDetailsPage'
 import EditProfilePage from '@/pages/user/EditProfilePage'
 import ExplorePage from '@/pages/user/ExplorePage'
@@ -17,6 +18,7 @@ import MyClubsPage from '@/pages/user/MyClubsPage'
 import OfficerPage from '@/pages/user/OfficerPage'
 import ProfilePage from '@/pages/user/ProfilePage'
 import ProposeClubPage from '@/pages/user/ProposeClubPage'
+import SkillsInterestsPage from '@/pages/user/SkillsInterestsPage'
 import { getClub } from '@/services/clubs'
 
 function RequireAuth() {
@@ -76,6 +78,8 @@ export default function App() {
         <Route path="clubs/propose" element={<ProposeClubPage />} />
         <Route path="profile" element={<ProfilePage />} />
         <Route path="profile/edit" element={<EditProfilePage />} />
+        <Route path="profile/academic" element={<AcademicDetailsPage />} />
+        <Route path="profile/skills" element={<SkillsInterestsPage />} />
         <Route path="announcements" element={<AnnouncementsPage />} />
         <Route element={<RequireOfficer />}><Route path="clubs/:id/officer" element={<OfficerPage />} /></Route>
         <Route element={<RequireAdmin />}>

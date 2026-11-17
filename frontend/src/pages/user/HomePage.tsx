@@ -38,6 +38,7 @@ export default function HomePage() {
       <div><span className="eyebrow">YOUR PROFILE</span><h2>{user?.full_name}</h2><p>{user?.course || 'Course not added'}{user?.year_level ? ` · Year ${user.year_level}` : ''}{user?.section ? ` · Section ${user.section}` : ''}</p></div>
       <Link className="text-link" to="/profile/edit">Edit details <span aria-hidden="true">→</span></Link>
     </section>
+    <section className="content-section quick-access-section"><div className="section-heading"><div><span className="eyebrow">PROFILE TOOLS</span><h2>Quick access<span className="heading-period">.</span></h2></div></div><div className="quick-access-grid"><Link className="quick-access-card" to="/profile/academic"><span aria-hidden="true">⌂</span><strong>Academic details</strong><small>Update your course, year, and section.</small></Link><Link className="quick-access-card" to="/profile/skills"><span aria-hidden="true">✳</span><strong>Skills & interests</strong><small>Choose skills and add new interests.</small></Link></div></section>
     {error && <ErrorState message={error} onRetry={() => setRetryKey((key) => key + 1)} />}
     <section className="content-section"><div className="section-heading"><div><span className="eyebrow">YOUR COMMUNITY</span><h2>My clubs<span className="heading-period">.</span></h2></div><Link className="text-link" to="/my-clubs">View all →</Link></div>
       {loading && <div className="club-grid">{Array.from({ length: 2 }, (_, index) => <LoadingState key={index} label="Loading your clubs" />)}</div>}

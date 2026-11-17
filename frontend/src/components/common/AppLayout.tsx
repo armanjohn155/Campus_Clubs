@@ -14,7 +14,8 @@ const mainLinks = [
 
 const titles: Record<string, string> = {
   '/': 'Explore clubs', '/home': 'Home', '/my-clubs': 'My clubs', '/announcements': 'Announcements',
-  '/profile': 'Profile', '/profile/edit': 'Edit profile', '/admin': 'Administration',
+  '/profile': 'Profile', '/profile/edit': 'Edit profile', '/profile/academic': 'Academic details',
+  '/profile/skills': 'Skills & interests', '/admin': 'Administration',
 }
 
 export function AppLayout() {
