@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { EmptyState, ErrorState, LoadingState } from '@/components/common/States'
 import { Button } from '@/components/ui/Button'
 import { getNotifications, markAllNotificationsRead, markNotificationRead } from '@/services/notifications'
@@ -9,6 +9,8 @@ export function NotificationBell() {
   const [list, setList] = useState<NotificationList | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  const panelRef = useRef<HTMLElement>(null)
 
   const load = useCallback(async () => {
     await Promise.resolve()
@@ -27,6 +29,20 @@ export function NotificationBell() {
     const timer = window.setTimeout(() => { void load() }, 0)
     return () => window.clearTimeout(timer)
   }, [load])
+
+  useEffect(() => {
+    if (!open) return
+    const trigger = triggerRef.current
+    panelRef.current?.focus()
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false)
+    }
+    document.addEventListener('keydown', closeOnEscape)
+    return () => {
+      document.removeEventListener('keydown', closeOnEscape)
+      trigger?.focus()
+    }
+  }, [open])
 
   async function markRead(id: number) {
     try {
@@ -56,18 +72,20 @@ export function NotificationBell() {
   return (
     <div className="notification-wrap">
       <Button
+        ref={triggerRef}
         variant="outline"
         className="notification-trigger"
         type="button"
-        aria-label="Notifications"
+        aria-label={list?.unread_count ? `Notifications, ${list.unread_count} unread` : 'Notifications'}
         aria-expanded={open}
         aria-haspopup="dialog"
         onClick={() => setOpen((value) => !value)}
       >
-        <span aria-hidden="true">♧</span>
-        {Boolean(list?.unread_count) && <i className="unread-dot" aria-label={`${list?.unread_count} unread notifications`} />}
+        <svg className="bell-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" /></svg>
+        <span>Notifications</span>
+        {Boolean(list?.unread_count) && <span className="unread-count" aria-hidden="true">{list!.unread_count > 99 ? '99+' : list!.unread_count}</span>}
       </Button>
-      {open && <section className="notification-popover" role="dialog" aria-label="Notifications">
+      {open && <section ref={panelRef} className="notification-popover" role="dialog" aria-label="Notifications" tabIndex={-1}>
         <header className="popover-header"><strong>Notifications</strong><Button variant="quiet" size="small" onClick={() => void markAllRead()} disabled={!list?.unread_count}>Mark all read</Button></header>
         {loading && <LoadingState label="Loading notifications" />}
         {error && <ErrorState message={error} onRetry={() => void load()} />}
