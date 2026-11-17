@@ -43,12 +43,12 @@ function MembershipButton({ club }: { club: Club }) {
   return <div className="membership-action">
     <Button
       size="small"
-      variant={approved ? 'quiet' : pending ? 'outline' : 'primary'}
+      variant={approved ? 'outline' : pending ? 'danger' : 'primary'}
       disabled={busy || approved || !club.is_accepting_members}
       onClick={() => void toggleRequest()}
       aria-label={approved ? `Member of ${club.name}` : pending ? `Cancel request to join ${club.name}` : `Request to join ${club.name}`}
     >
-      {busy ? 'Saving…' : approved ? 'Member' : pending ? 'Request sent · Cancel' : club.is_accepting_members ? 'Join club' : 'Membership closed'}
+      {busy ? 'Saving…' : approved ? 'Member' : pending ? 'Cancel request' : club.is_accepting_members ? 'Join club' : 'Membership closed'}
     </Button>
     {error && <span className="field-error" role="alert">{error}</span>}
   </div>
