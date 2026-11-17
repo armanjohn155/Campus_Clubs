@@ -43,7 +43,7 @@ function RequireOfficer() {
     getClub(id).then((club) => {
       if (!active) return
       const membership = club.my_membership
-      setAccess({ clubId: id, state: membership?.status === 'approved' && membership.role !== 'member' ? 'allowed' : 'denied' })
+      setAccess({ clubId: id, state: user?.role === 'ADMIN' || (membership?.status === 'approved' && membership.role !== 'member') ? 'allowed' : 'denied' })
     }).catch(() => { if (active) setAccess({ clubId: id, state: 'error' }) })
     return () => { active = false }
   }, [id, user?.id])

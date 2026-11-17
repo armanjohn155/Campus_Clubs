@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/Button'
 import { Field } from '@/components/ui/Field'
 import { getErrorDetails } from '@/lib/errors'
 import { createAnnouncement, deleteAnnouncement, getAnnouncements, updateAnnouncement } from '@/services/announcements'
-import { getClub } from '@/services/clubs'
+import { getClub, updateClub } from '@/services/clubs'
 import { getClubMembers, getClubRequests, updateMembership } from '@/services/memberships'
 import type { Announcement, Club, FieldErrors, Membership } from '@/types'
 
@@ -88,6 +88,7 @@ export default function OfficerPage() {
 
   return <div className="page-content"><section className="welcome-row"><div><Link className="text-link" to={`/clubs/${club.id}`}>← {club.name}</Link><span className="eyebrow">OFFICER TOOLS</span><h1>Manage your club<span className="heading-period">.</span></h1><p>Review requests, manage members, and publish updates.</p></div></section>
     {actionError && <p className="form-error" role="alert">{actionError}</p>}
+    <ClubSettingsForm club={club} onSaved={setClub} />
     <section className="content-section"><div className="section-heading"><div><span className="eyebrow">MEMBERSHIP</span><h2>Pending requests<span className="heading-period">.</span></h2></div></div>
       {requests.length === 0 ? <EmptyState title="No pending requests" description="New requests will appear here." /> : <div className="table-wrap"><table><thead><tr><th>Student</th><th>Program</th><th>Message</th><th>Requested</th><th>Actions</th></tr></thead><tbody>{requests.map((item) => <tr key={item.id}><td><strong>{item.user.full_name}</strong><small>{item.user.student_id}</small></td><td>{item.user.course} · Year {item.user.year_level}</td><td>{item.message || '—'}</td><td>{item.requested_at ? new Date(item.requested_at).toLocaleDateString() : '—'}</td><td className="table-actions"><Button size="small" disabled={busyId === item.id} onClick={() => void decide(item, 'approved')}>Approve</Button><Button size="small" variant="outline" disabled={busyId === item.id} onClick={() => void decide(item, 'rejected')}>Reject</Button></td></tr>)}</tbody></table></div>}
     </section>
@@ -104,4 +105,53 @@ export default function OfficerPage() {
       {announcements.length === 0 ? <EmptyState title="No announcements yet" description="Your club updates will be shown here." /> : <div className="announcement-board">{announcements.map((item) => <article className="announcement-card" key={item.id}><time className="announcement-date" dateTime={item.created_at}>{new Date(item.created_at).toLocaleString()}</time><h3>{item.title}</h3><p>{item.body}</p><div className="card-actions"><Button variant="quiet" size="small" onClick={() => beginEdit(item)}>Edit</Button><Button variant="danger" size="small" onClick={() => void removeAnnouncement(item)}>Delete</Button></div></article>)}</div>}
     </section>
   </div>
+}
+
+function ClubSettingsForm({ club, onSaved }: { club: Club; onSaved: (club: Club) => void }) {
+  const [description, setDescription] = useState(club.description)
+  const [adviser, setAdviser] = useState(club.adviser_name ?? '')
+  const [schedule, setSchedule] = useState(club.meeting_schedule ?? '')
+  const [contactEmail, setContactEmail] = useState(club.contact_email ?? '')
+  const [tags, setTags] = useState(club.tags.join(', '))
+  const [accepting, setAccepting] = useState(club.is_accepting_members)
+  const [errors, setErrors] = useState<FieldErrors>({})
+  const [message, setMessage] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  async function submit(event: FormEvent) {
+    event.preventDefault()
+    setSaving(true); setErrors({}); setMessage('')
+    const normalizedTags = [...new Set(tags.split(',').map((tag) => tag.trim()).filter(Boolean))]
+    if (normalizedTags.length > 6) {
+      setErrors({ tags: ['Add no more than six tags.'] }); setSaving(false); return
+    }
+    try {
+      const updated = await updateClub(club.id, {
+        description,
+        adviser_name: adviser,
+        meeting_schedule: schedule,
+        contact_email: contactEmail,
+        is_accepting_members: accepting,
+        tags: normalizedTags,
+      })
+      onSaved(updated)
+      setMessage('Club settings saved.')
+    } catch (reason) {
+      const details = getErrorDetails(reason)
+      setErrors(details.fields); setMessage(details.message)
+    } finally { setSaving(false) }
+  }
+
+  return <section className="content-section"><div className="section-heading"><div><span className="eyebrow">CLUB PROFILE</span><h2>Club settings<span className="heading-period">.</span></h2></div></div>
+    <form className="form-card club-settings-form" onSubmit={submit}>
+      <Field label="Description" name="club_settings_description" error={errors.description?.[0]}><textarea id="club_settings_description" rows={4} maxLength={500} value={description} onChange={(event) => setDescription(event.target.value)} required aria-invalid={Boolean(errors.description)} /></Field>
+      <Field label="Adviser" name="club_settings_adviser" error={errors.adviser_name?.[0]}><input id="club_settings_adviser" maxLength={120} value={adviser} onChange={(event) => setAdviser(event.target.value)} aria-invalid={Boolean(errors.adviser_name)} /></Field>
+      <Field label="Meeting schedule" name="club_settings_schedule" error={errors.meeting_schedule?.[0]}><input id="club_settings_schedule" maxLength={120} value={schedule} onChange={(event) => setSchedule(event.target.value)} aria-invalid={Boolean(errors.meeting_schedule)} /></Field>
+      <Field label="Contact email" name="club_settings_contact" error={errors.contact_email?.[0]}><input id="club_settings_contact" type="email" value={contactEmail} onChange={(event) => setContactEmail(event.target.value)} aria-invalid={Boolean(errors.contact_email)} /></Field>
+      <Field label="Tags" name="club_settings_tags" error={errors.tags?.[0]} hint="Separate tags with commas. Up to six."><input id="club_settings_tags" value={tags} onChange={(event) => setTags(event.target.value)} aria-invalid={Boolean(errors.tags)} /></Field>
+      <label className="toggle-field" htmlFor="club_accepting_members"><input id="club_accepting_members" type="checkbox" checked={accepting} onChange={(event) => setAccepting(event.target.checked)} />Accepting new members</label>
+      {message && <p className={errors.description || errors.adviser_name || errors.meeting_schedule || errors.contact_email || errors.tags ? 'form-error' : 'form-success'} role="status">{message}</p>}
+      <div className="form-actions"><Button type="submit" disabled={saving}>{saving ? 'Saving…' : 'Save club settings'}</Button></div>
+    </form>
+  </section>
 }
